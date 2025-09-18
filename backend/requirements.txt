@@ -1,0 +1,9 @@
+fastapi[all]         
+uvicorn[standard]    
+langchain            
+psycopg2-binary      
+sqlalchemy           
+transformers        
+torch                
+python-dotenv
+sentence-transformers
