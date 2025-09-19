@@ -1,10 +1,10 @@
-from fastAPI import APIRouter 
 from initialize_db import vectordb
 from langchain_community.document_loaders import UnstructuredDocumentPDFLoader
+
 class Uploader:
 
     def __init__(self):
-
+        pass
 
     # parse pdf into a document object
     def parse_document(self, file_path):
@@ -17,4 +17,4 @@ class Uploader:
     def upload_document(self, file_path):
         document = self.parse_document(file_path)
 
-        initialize_db.insert_document(document)
+        vector_db.insert_document(document)

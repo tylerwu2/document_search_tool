@@ -1,7 +1,11 @@
+import os
+from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import register_vector 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from embeddings import EmbeddingsGenerator
+
+load_dotenv()
 
 class VectorDB:
 
@@ -9,11 +13,11 @@ class VectorDB:
             # establish database connection and embeddings model
 
             self.conn = psycopg2.connect(
-                  database=database,
-                  user=user,
-                  password=password,
-                  host=host,
-                  port=port
+                  database=os.getenv("DATABASE"),
+                  user=os.getenv("USER"),
+                  password=os.getenv("PASSWORD"),
+                  host=os.getenv("HOST"),
+                  port=os.getenv("PORT")
             )
             
             self.cursor = self.conn.cursor() 

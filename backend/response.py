@@ -1,4 +1,3 @@
-from fastAPI import APIRouter
 from initialize_db import vectordb
 from langchain import langchain_huggingface, langchain_core, langchain_text_splitters
 from langchain_huggingface import HuggingFacePipeline
@@ -23,11 +22,9 @@ class Response:
     def generate_response(self):
         template = """Question: {query}
         
-        Use the provided context and information to generate a response, do not bring in outside context or information. 
-        Context: {context}
+        Only use the provided context and information to generate a response, do not pull in outside information: {context}
         """ 
-        
         prompt = PromptTemplate.from_template(template)
         chain = self.pipeline(prompt)
         output_chunks = self.find_chunks()
-        return(chain.invoke({"query":self.query, "context":output_chunks}))
+        return(chain.invoke({"query":self.query, "chunks": output_chunks}))
