@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter
 from initialize_db import vectordb
 
 app = FastAPI()
-router = APIRouter() 
+router = APIRouter()
 
 # initialize app message
 @app.get("/")
@@ -19,6 +19,7 @@ async def upload_documents(document):
     return {"status": "Document Uploaded", "document": document}
 
 # search and generate output based on query
-@app.get("/search")
-async def search_output(query):
-    return vectordb.similarity_search(query)
+@app.get("/response")
+async def get_output(query):
+    response = Response(query)
+    return response.generate_response()
