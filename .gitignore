@@ -45,3 +45,6 @@ next-env.d.ts
 
 # credentials
 /backend/env
+
+# pycache
+/backend/__pycache__

@@ -1,10 +1,11 @@
 fastapi[all]         
 uvicorn[standard]    
-langchain            
-psycopg2-binary      
+langchain                
 sqlalchemy           
 transformers        
 torch                
 python-dotenv
 sentence-transformers
 pdfplumber
+langchain-huggingface
+chromadb

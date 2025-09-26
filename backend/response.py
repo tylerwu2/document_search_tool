@@ -1,8 +1,7 @@
 from initialize_db import vectordb
-from langchain import langchain_huggingface, langchain_core, langchain_text_splitters
 from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
-from langchain_text_splitters import RecursiveChracterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class Response:
     

@@ -1,10 +1,23 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.response import JSONResponse
-from initialize_db import vectordb
-import pdfplumber
 import io
-import upload
+import asyncio
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+# custom modules 
+from initialize_db import vectordb
+from response import Response
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Application Startup...")
+    # initialize vectordb upon startup
+    vectordb.create_table()
+    yield
+    print("Application Shutdown")
 
 app = FastAPI()
 
@@ -16,21 +29,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class StatusResponse(BaseModel):
+    status: str
+
+class MessageResponse(BaseModel):
+    message: str
+
 
 def extract_text_from_pdf(pdf_bytes: bytes):
+    import pdfplumber
     text = ""
-    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text()
-            if page_text:
-                text += page_text + "\n"
-    return text
+    try:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
+    except Exception as e:
+        # Handle potential pdfplumber errors (e.g., corrupted file)
+        raise ValueError(f"Failed to process PDF file: {e}")
 
-
-@app.on_event("startup")
-def startup():
-    vectordb.create_table()
-
+# API Endpoints 
 # initialize app message
 @app.get("/")
 async def start_message():
@@ -42,14 +62,28 @@ async def upload_documents(file: UploadFile = File(...)):
         # add document to vectordb
     try:
         pdf_bytes = await file.read()
-        text = extract_text_from_pdf(pdf_bytes)
-        vectordb.insert_document(text)
+        text = await asyncio.to_thread(extract_text_from_pdf, pdf_bytes)
+
+        if not text.strip():
+            raise HTTPException(status_code=400, detail = "Could not extract any text from the PDF.")
+        await asyncio.to_thread(vectordb.insert_document, text)
         return {"status": "Document Uploaded"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        return JSONResponse(status_code = 500, content = {"error": str(e)})
+        # Catch-all for other unexpected errors
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+
 
 # search and generate output based on query
 @app.get("/response")
 async def get_output(query: str):
-    response = Response(query)
-    return response.generate_response()
+    if not query.strip():
+        raise HTTPException(status_code=400, detail="Query is empty.")
+
+    try:
+        response = Response(query)
+        result = await asyncio.to_thread(response.generate_response)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Faield to generate response: {e}")

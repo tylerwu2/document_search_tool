@@ -1,4 +1,4 @@
-from langchain import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 class EmbeddingsGenerator:
 
