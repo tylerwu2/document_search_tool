@@ -1,4 +1,5 @@
 from initialize_db import vectordb
+from transformers import pipeline
 from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -6,24 +7,33 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 class Response:
     
     def __init__(self, query):
-        self.query = query
-        self.pipeline = HuggingFacePipeline(
-            model_id="gpt2", 
-            task = "text-generation"
+        self.query = query 
+        self.pipeline = pipeline(
+            task="text-generation",
+            model="gpt2",
+            return_full_text = False, 
+            max_new_tokens=150
         )
+        self.llm = HuggingFacePipeline(pipeline=self.pipeline)
 
 
     def find_chunks(self):
-        chunks = vectordb.similarity_search(self.query)
-        return chunks
+        return vectordb.similarity_search(self.query)
     
     # include chunks within llm query so response only draws from context of the chunks and not outside sources
     def generate_response(self):
-        template = """Question: {query}
-        
-        Only use the provided context and information to generate a response, do not pull in outside information: {context}
+        template = """
+        Answer the following question using only the provided context.
+
+        Context {context}
+
+        Question: {query}
+
+        Answer:
         """ 
         prompt = PromptTemplate.from_template(template)
-        chain = self.pipeline(prompt)
-        output_chunks = self.find_chunks()
-        return(chain.invoke({"query":self.query, "chunks": output_chunks}))
+        chain = prompt | self.llm
+        context_chunks = self.find_chunks()
+        context_string = "\n\n".join([doc.page_content for doc in context_chunks])
+        response = (chain.invoke({"query":self.query, "context": context_string}))
+        return response

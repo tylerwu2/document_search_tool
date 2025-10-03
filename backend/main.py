@@ -14,12 +14,10 @@ from response import Response
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Application Startup...")
-    # initialize vectordb upon startup
-    vectordb.create_table()
     yield
     print("Application Shutdown")
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -59,7 +57,13 @@ async def start_message():
 # upload documents to vector db 
 @app.post("/upload")
 async def upload_documents(file: UploadFile = File(...)):
-        # add document to vectordb
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code = 400,
+            detail = "Invalid file type. Please upload a PDF."
+        )
+
+    # add document to vectordb
     try:
         pdf_bytes = await file.read()
         text = await asyncio.to_thread(extract_text_from_pdf, pdf_bytes)
@@ -84,6 +88,6 @@ async def get_output(query: str):
     try:
         response = Response(query)
         result = await asyncio.to_thread(response.generate_response)
-        return result
+        return {"results": [result]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Faield to generate response: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate response: {e}")

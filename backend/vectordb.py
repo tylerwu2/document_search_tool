@@ -79,6 +79,7 @@
 import chromadb 
 from chromadb.utils import embedding_functions
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain.schema import Document
 import uuid 
 
 class VectorDB:
@@ -105,7 +106,11 @@ class VectorDB:
         chunks = text_splitter.split_text(text)
         return chunks
     
+
     def similarity_search(self, query, num_documents=5):
         results = self.collection.query(query_texts=[query], n_results=num_documents)
+        docs = results["documents"][0]
+        ids = results["ids"][0]
 
-        return results['documents'][0]
+        return [Document(page_content=doc, metadata={"id": doc_id}) 
+                for doc, doc_id in zip(docs, ids)]
