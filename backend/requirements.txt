@@ -8,4 +8,5 @@ python-dotenv
 sentence-transformers
 pdfplumber
 langchain-huggingface
-chromadb
+langchain-community
+langchain-chroma

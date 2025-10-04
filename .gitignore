@@ -48,3 +48,6 @@ next-env.d.ts
 
 # pycache
 /backend/__pycache__
+
+# chromadb vector database
+/backend/chroma_db

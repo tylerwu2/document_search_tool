@@ -1,6 +1,7 @@
 import io
 import asyncio
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # custom modules 
-from initialize_db import vectordb
+from vectordb import vectordb
 from response import Response
 
 @asynccontextmanager
@@ -64,19 +65,21 @@ async def upload_documents(file: UploadFile = File(...)):
         )
 
     # add document to vectordb
+    temp_file_path = f"temp_{file.filename}"
     try:
-        pdf_bytes = await file.read()
-        text = await asyncio.to_thread(extract_text_from_pdf, pdf_bytes)
+        with open(temp_file_path, "wb") as f:
+            f.write(await file.read())
 
-        if not text.strip():
-            raise HTTPException(status_code=400, detail = "Could not extract any text from the PDF.")
         await asyncio.to_thread(vectordb.insert_document, text)
-        return {"status": "Document Uploaded"}
+        return {"status": f"Document '{file.filename}' Uploaded Successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         # Catch-all for other unexpected errors
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+    finally: 
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 
 # search and generate output based on query

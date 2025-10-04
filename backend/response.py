@@ -1,4 +1,4 @@
-from initialize_db import vectordb
+from vectordb import vectordb
 from transformers import pipeline
 from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
@@ -10,9 +10,9 @@ class Response:
         self.query = query 
         self.pipeline = pipeline(
             task="text-generation",
-            model="gpt2",
+            model="gmistralai/Mistral-7B-Instruct-v0.2",
             return_full_text = False, 
-            max_new_tokens=150
+            max_new_tokens=512
         )
         self.llm = HuggingFacePipeline(pipeline=self.pipeline)
 
