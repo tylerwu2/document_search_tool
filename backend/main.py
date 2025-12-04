@@ -67,10 +67,19 @@ async def upload_documents(file: UploadFile = File(...)):
     # add document to vectordb
     temp_file_path = f"temp_{file.filename}"
     try:
-        with open(temp_file_path, "wb") as f:
-            f.write(await file.read())
+        # process file content and extract text
+        file_content = await file.read()
 
-        await asyncio.to_thread(vectordb.insert_document, text)
+        text = extract_text_from_pdf(file_content)
+
+        if not text.strip():
+            raise ValueError("PDF File appears to be empty.")
+        
+        # save to temp file for vectordb (which expects a file path)
+        with open(temp_file_path, "wb") as f:
+            f.write(file_content)
+
+        await asyncio.to_thread(vectordb.insert_document, temp_file_path, file.filename)
         return {"status": f"Document '{file.filename}' Uploaded Successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

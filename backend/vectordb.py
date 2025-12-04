@@ -17,17 +17,30 @@ class VectorDB:
         )
 
     def insert_document(self, doc_path, filename): 
-        loader = PyPDFLoader(doc_path)
-        document = loader.load() 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
-        chunks = text_splitter.split_documents(document)
+        try:
+            loader = PyPDFLoader(doc_path)
+            document = loader.load() 
 
-        for doc in chunks:
-            doc.metadata={"source":filename}
+            if not document:
+                raise ValueError(f"Failed to load document from {doc_path}")
+            
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
+            chunks = text_splitter.split_documents(document)
 
-        self.vectordb.add_documents(chunks)
+            if not chunks:
+                raise ValueError(f"No text chunks could be generated from {doc_path}")
+
+            for doc in chunks:
+                doc.metadata={"source":filename}
+
+            self.vectordb.add_documents(chunks)
+        except Exception as e:
+            raise ValueError(f"Error processing document {filename}: {e}")
 
     def similarity_search(self, query, num_documents=5):
-        return self.vectordb.similarity_search(query, k=num_documents)
+        try:
+            return self.vectordb.similarity_search(query, k=num_documents)
+        except Exception as e:
+            raise RuntimeError(f"Error during similarity search: {e}")
 
 vectordb = VectorDB()

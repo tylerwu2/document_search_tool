@@ -24,8 +24,16 @@ export default function UploadPage() {
         method: 'POST',
         body: formData,
       });
+      
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonError) {
+        // If response is not JSON, use status text as error message
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      
       if (res.ok) {
         setStatus(data.status || 'Upload successful');
       } else {

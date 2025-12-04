@@ -16,15 +16,26 @@ export default function ResultsPage() {
 
     try {
       const res = await fetch(`http://localhost:8000/response?query=${encodeURIComponent(query)}`);
+
       if (!res.ok) {
-        const errData = await res.json();
+        let errData;
+        try {
+          errData = await res.json();
+        } catch{  
+            throw new Error(errData.detail || 'An error occurred');
+        }
         throw new Error(errData.detail || 'An error occurred');
       }
       const data = await res.json();
+
+      if (!data || !data.results || !Array.isArray(data.results)) {
+        throw new Error('Invalid response format from server');
+      }
+      
       // The backend now sends {"results": ["...answer..."]}
       setResults(data.results || []);
     } catch (err) {
-      console.error(err);
+      console.error(err); 
       setError((err as Error).message);
     } finally {
       setLoading(false);
