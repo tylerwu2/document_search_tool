@@ -1,28 +1,41 @@
-from vectordb import vectordb
 from transformers import pipeline
 from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-class Response:
-    
-    def __init__(self, query):
-        self.query = query 
-        # error handling for LLM pipeline
+llm_instance = None
+
+def initialize_llm():
+    global llm_instance
+    if llm_instance is None:
         try:
-            self.pipeline = pipeline(
+            print("Loading LLM Pipeline...(may take a few minutes)")
+            pipeline_instance = pipeline(
                 task="text-generation",
-                model="gmistralai/Mistral-7B-Instruct-v0.2",
+                model="microsoft/Phi-3-mini-4k-instruct",
                 return_full_text = False, 
                 max_new_tokens=512
             )
-            self.llm = HuggingFacePipeline(pipeline=self.pipeline)
+
+            llm_instance = HuggingFacePipeline(pipeline=pipeline_instance)
+            print("LLM Pipeline loaded successfully.")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize LLM pipeline: {e}")
+    return llm_instance
+
+class Response:
+    
+    def __init__(self, query, vectordb_instance):
+        self.query = query 
+        self.vectordb = vectordb_instance
+        # global LLM instance used 
+        if llm_instance is None:
+            raise RuntimeError("LLM pipeline not initialized. Please call initialize_llm() first.")
+        self.llm = llm_instance
 
 
     def find_chunks(self):
-        return vectordb.similarity_search(self.query)
+        return self.vectordb.similarity_search(self.query)
     
     # include chunks within llm query so response only draws from context of the chunks and not outside sources
     def generate_response(self):

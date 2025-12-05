@@ -2,8 +2,11 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
+import os
 
-CHROMA_PATH = "chroma_db"
+# absolute path to avoid issues with working directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
 
 class VectorDB:
 
@@ -12,7 +15,8 @@ class VectorDB:
 
         self.vectordb = Chroma(
             persist_directory=CHROMA_PATH,
-            embedding_function=self.embeddings
+            embedding_function=self.embeddings,
+            collection_name=collection_name
         )
 
     def insert_document(self, doc_path, filename): 
@@ -41,5 +45,3 @@ class VectorDB:
             return self.vectordb.similarity_search(query, k=num_documents)
         except Exception as e:
             raise RuntimeError(f"Error during similarity search: {e}")
-
-vectordb = VectorDB()

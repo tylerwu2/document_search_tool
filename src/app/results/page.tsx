@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 export default function ResultsPage() {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<string[]>([]); // State is an array of strings
+  const [results, setResults] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -15,14 +15,23 @@ export default function ResultsPage() {
     setResults([]);
 
     try {
-      const res = await fetch(`http://localhost:8000/response?query=${encodeURIComponent(query)}`);
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+
+      const res = await fetch(
+        `http://localhost:8000/response?query=${encodeURIComponent(query)}`,
+        { signal: controller.signal }
+      );
+
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         let errData;
         try {
           errData = await res.json();
-        } catch{  
-            throw new Error(errData.detail || 'An error occurred');
+        } catch {  
+          throw new Error('An error occurred');
         }
         throw new Error(errData.detail || 'An error occurred');
       }
@@ -32,11 +41,14 @@ export default function ResultsPage() {
         throw new Error('Invalid response format from server');
       }
       
-      // The backend now sends {"results": ["...answer..."]}
       setResults(data.results || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err); 
-      setError((err as Error).message);
+      if (err.name === 'AbortError') {
+        setError('Request timed out. The model may be taking too long to respond.');
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -64,10 +76,9 @@ export default function ResultsPage() {
       </div>
 
       <div className="mt-4 w-full max-w-xl">
-        {loading && <p>Generating response...</p>}
+        {loading && <p>Generating response... (this may take 10-30 seconds)</p>}
         {error && <p className="text-red-500">Error: {error}</p>}
         
-        {/* FIX 6: Display the single text response cleanly */}
         {results.length > 0 && (
           <div className="border p-4 rounded bg-gray-50 whitespace-pre-wrap">
             <h2 className="font-semibold mb-2">Response:</h2>

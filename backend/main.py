@@ -9,12 +9,26 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # custom modules 
-from vectordb import vectordb
-from response import Response
+from vectordb import VectorDB
+from response import Response, initialize_llm
+
+#glboal instance of vector db, initialized in lifespan context manager
+vectordb_instance = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global vectordb_instance
     print("Application Startup...")
+    try:
+        print("Initializing Vector Database and Embeddings Model...")
+        vectordb_instance = VectorDB()
+        print("VectorDB initialized successfully.")
+        print("Initializing LLM Pipeline... (may take a few minutes)")
+        await asyncio.to_thread(initialize_llm)
+        print("LLM Pipeline initialized successfully.")
+    except Exception as e:
+        print(f"CRITICAL: Failed to initialize Vector Database: {e}")
+        raise RuntimeError(f"Application Startup Failed: {e}") from e
     yield
     print("Application Shutdown")
 
@@ -58,6 +72,9 @@ async def start_message():
 # upload documents to vector db 
 @app.post("/upload")
 async def upload_documents(file: UploadFile = File(...)):
+    if vectordb_instance is None:
+        raise HTTPException(status_code=503, detail="VectorDB not initialized.")
+
     if file.content_type != "application/pdf":
         raise HTTPException(
             status_code = 400,
@@ -79,7 +96,7 @@ async def upload_documents(file: UploadFile = File(...)):
         with open(temp_file_path, "wb") as f:
             f.write(file_content)
 
-        await asyncio.to_thread(vectordb.insert_document, temp_file_path, file.filename)
+        await asyncio.to_thread(vectordb_instance.insert_document, temp_file_path, file.filename)
         return {"status": f"Document '{file.filename}' Uploaded Successfully"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -94,11 +111,14 @@ async def upload_documents(file: UploadFile = File(...)):
 # search and generate output based on query
 @app.get("/response")
 async def get_output(query: str):
+    if vectordb_instance is None:
+        raise HTTPException(status_code=503, detail="VectorDB not initialized.")
+
     if not query.strip():
         raise HTTPException(status_code=400, detail="Query is empty.")
 
     try:
-        response = Response(query)
+        response = Response(query, vectordb_instance)
         result = await asyncio.to_thread(response.generate_response)
         return {"results": [result]}
     except Exception as e:
