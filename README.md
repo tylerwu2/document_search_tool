@@ -1,4 +1,4 @@
-#  Document Search Tool
+#  Semantically
 
 A full-stack application that allows users to summarize and query uploaded documents. Built with **Next.js** and **React** for the frontend, and **FastAPI** for the backend.
 
@@ -38,7 +38,7 @@ yarn -v
 ## Install
 1. Clone the repository:
 ```bash
-git clone https://github.com/tylerwu2/document_search_tool.git
+git clone https://github.com/tylerwu2/semantically.git
 cd document_search_tool
 ```
 2. Install frontend dependencies:
